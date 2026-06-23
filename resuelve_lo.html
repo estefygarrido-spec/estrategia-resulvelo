@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RESUÉLVELO — Juego de Matemáticas</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,sans-serif;background:#F4F8F0;min-height:100vh;padding:1rem}
+.game-wrap{max-width:700px;margin:0 auto;padding:1rem 0}
+.header{text-align:center;margin-bottom:1.5rem}
+.header h1{font-size:26px;font-weight:700;color:#27500A;margin-bottom:4px}
+.header p{font-size:15px;color:#639922}
+.problem-card{background:#EAF3DE;border:1.5px solid #97C459;border-radius:14px;padding:1rem 1.25rem;margin-bottom:1.25rem;display:flex;align-items:center;gap:12px}
+.problem-icon{font-size:30px;flex-shrink:0}
+.problem-text{font-size:17px;color:#27500A;font-weight:600;line-height:1.5}
+.progress-bar{height:6px;background:#D3D1C7;border-radius:3px;margin-bottom:1.25rem;overflow:hidden}
+.progress-fill{height:100%;background:#639922;border-radius:3px;transition:width .3s}
+.steps-nav{display:flex;gap:6px;margin-bottom:1.25rem;flex-wrap:wrap;justify-content:center}
+.step-btn{display:flex;align-items:center;gap:5px;padding:6px 11px;border-radius:20px;border:1.5px solid #B4B2A9;background:#fff;cursor:pointer;font-size:12px;font-weight:600;color:#888780;transition:all .2s}
+.step-btn.active{background:#EAF3DE;border-color:#639922;color:#27500A}
+.step-btn.done{background:#E6F1FB;border-color:#378ADD;color:#0C447C}
+.step-num{width:20px;height:20px;border-radius:50%;background:#B4B2A9;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0}
+.step-btn.active .step-num{background:#639922}
+.step-btn.done .step-num{background:#378ADD}
+.step-panel{background:#fff;border:1px solid #D3D1C7;border-radius:14px;padding:1.25rem;margin-bottom:1rem}
+.step-label{font-size:12px;font-weight:700;color:#888780;margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em}
+.step-title{font-size:20px;font-weight:700;color:#27500A;margin-bottom:4px}
+.step-hint{font-size:14px;color:#5F5E5A;margin-bottom:1rem;line-height:1.5}
+.canvas-tools{display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap}
+.tool-btn{padding:6px 12px;border-radius:8px;border:1.5px solid #B4B2A9;background:#fff;cursor:pointer;font-size:13px;font-weight:600;color:#5F5E5A}
+.tool-btn.active-tool{background:#EAF3DE;border-color:#639922;color:#27500A}
+.color-dot{width:24px;height:24px;border-radius:50%;border:2.5px solid transparent;cursor:pointer;flex-shrink:0}
+.color-dot.sel{border-color:#27500A}
+.size-label{font-size:12px;color:#888780;font-weight:600}
+.canvas-wrap{width:100%;background:#FAFAF8;border:2px solid #D3D1C7;border-radius:10px;overflow:hidden;cursor:crosshair}
+canvas{display:block;touch-action:none;width:100%;height:auto}
+.answer-section{margin-top:1rem;padding-top:1rem;border-top:1px solid #E8E6DF}
+.answer-label{font-size:15px;color:#5F5E5A;margin-bottom:8px;font-weight:600}
+.answer-row{display:flex;gap:10px;align-items:center}
+.answer-input{font-size:22px;width:90px;text-align:center;padding:10px;border-radius:10px;border:2px solid #B4B2A9;font-weight:700;color:#27500A}
+.answer-input:focus{outline:none;border-color:#639922}
+.check-btn{padding:11px 22px;border-radius:10px;border:2px solid #639922;background:#EAF3DE;color:#27500A;font-size:15px;font-weight:700;cursor:pointer}
+.check-btn:hover{background:#C0DD97}
+.feedback{margin-top:10px;padding:12px 16px;border-radius:10px;font-size:15px;font-weight:600;display:none}
+.feedback.correct{background:#EAF3DE;color:#27500A;border:1.5px solid #97C459}
+.feedback.wrong{background:#FAECE7;color:#712B13;border:1.5px solid #F0997B}
+.nav-btns{display:flex;gap:8px;justify-content:space-between;margin-top:1rem}
+.nav-btn{padding:10px 22px;border-radius:10px;border:1.5px solid #B4B2A9;background:#fff;cursor:pointer;font-size:14px;font-weight:600;color:#5F5E5A}
+.nav-btn.primary{background:#EAF3DE;border-color:#639922;color:#27500A}
+.nav-btn:disabled{opacity:.35;cursor:default}
+.congrats{text-align:center;padding:2.5rem 1rem;display:none;background:#fff;border-radius:14px;border:1px solid #D3D1C7}
+.congrats h2{font-size:24px;font-weight:700;color:#27500A;margin-bottom:8px}
+.congrats p{font-size:16px;color:#5F5E5A;margin-bottom:1.5rem;line-height:1.6}
+.stars{font-size:44px;margin-bottom:12px}
+.new-problem-btn{padding:14px 32px;border-radius:12px;background:#EAF3DE;border:2px solid #639922;color:#27500A;font-size:17px;font-weight:700;cursor:pointer}
+.new-problem-btn:hover{background:#C0DD97}
+</style>
+</head>
+<body>
+<div class="game-wrap">
+  <div class="header">
+    <h1>🧮 RESUÉLVELO</h1>
+    <p>Sigue los 7 pasos para resolver el problema</p>
+  </div>
+
+  <div class="progress-bar"><div class="progress-fill" id="prog"></div></div>
+
+  <div class="problem-card" id="prob-card">
+    <div class="problem-icon">🌟</div>
+    <div class="problem-text" id="prob-text"></div>
+  </div>
+
+  <div class="steps-nav" id="steps-nav"></div>
+
+  <div class="step-panel" id="step-panel">
+    <div class="step-label" id="s-label"></div>
+    <div class="step-title" id="s-title"></div>
+    <div class="step-hint" id="s-hint"></div>
+
+    <div class="canvas-tools">
+      <button class="tool-btn active-tool" id="btn-draw" onclick="setTool('draw')">✏️ Dibujar</button>
+      <button class="tool-btn" id="btn-erase" onclick="setTool('erase')">⬜ Borrar</button>
+      <button class="tool-btn" onclick="clearCanvas()">🗑️ Limpiar todo</button>
+      <div class="color-dot sel" style="background:#1a1a1a" onclick="setColor('#1a1a1a')" id="c0"></div>
+      <div class="color-dot" style="background:#D85A30" onclick="setColor('#D85A30')" id="c1"></div>
+      <div class="color-dot" style="background:#1D9E75" onclick="setColor('#1D9E75')" id="c2"></div>
+      <div class="color-dot" style="background:#378ADD" onclick="setColor('#378ADD')" id="c3"></div>
+      <div class="color-dot" style="background:#EF9F27" onclick="setColor('#EF9F27')" id="c4"></div>
+      <div class="color-dot" style="background:#D4537E" onclick="setColor('#D4537E')" id="c5"></div>
+      <span class="size-label">Grosor:</span>
+      <input type="range" min="2" max="20" value="5" id="brush-size" style="width:80px">
+    </div>
+
+    <div class="canvas-wrap" id="cw">
+      <canvas id="board" width="680" height="200"></canvas>
+    </div>
+
+    <div class="answer-section" id="ans-section" style="display:none">
+      <div class="answer-label">✍️ ¿Cuánto es la respuesta?</div>
+      <div class="answer-row">
+        <input type="number" class="answer-input" id="ans-input" min="0" max="99" placeholder="?">
+        <button class="check-btn" onclick="checkAnswer()">✅ Comprobar</button>
+      </div>
+      <div class="feedback" id="feedback"></div>
+    </div>
+  </div>
+
+  <div class="nav-btns">
+    <button class="nav-btn" id="prev-btn" onclick="prevStep()" disabled>← Anterior</button>
+    <button class="nav-btn primary" id="next-btn" onclick="nextStep()">Siguiente →</button>
+  </div>
+
+  <div class="congrats" id="congrats">
+    <div class="stars">🌟⭐🌟</div>
+    <h2>¡Muy bien hecho!</h2>
+    <p>Completaste todos los pasos del método RESUÉLVELO.<br>¡Eres un matemático increíble!</p>
+    <button class="new-problem-btn" onclick="newProblem()">🎲 Nuevo problema</button>
+  </div>
+</div>
+
+<script>
+const problems = [
+  {text:"Había 7 manzanas en una canasta. La mamá puso 5 manzanas más. ¿Cuántas manzanas hay ahora?", answer:12},
+  {text:"Tomás tenía 9 lápices. Le regaló 3 a su amigo. ¿Cuántos lápices le quedaron a Tomás?", answer:6},
+  {text:"En el jardín había 6 flores amarillas y 8 flores rojas. ¿Cuántas flores hay en total?", answer:14},
+  {text:"Ana tiene 15 monedas. Gastó 6 en dulces. ¿Cuántas monedas le quedan?", answer:9},
+  {text:"En el bus iban 8 niños. En la siguiente parada subieron 4 niños más. ¿Cuántos niños van en el bus?", answer:12},
+  {text:"Pablo tiene 5 galletas y su hermana tiene 9. ¿Cuántas galletas tienen entre los dos?", answer:14},
+  {text:"En el estanque había 17 patos. Se fueron volando 8. ¿Cuántos patos quedaron?", answer:9},
+  {text:"La abuela horneó 11 galletas de chocolate y 7 de vainilla. ¿Cuántas galletas horneó en total?", answer:18},
+  {text:"Juan tiene 13 figuritas. Le dio 5 a su primo. ¿Cuántas figuritas le quedaron?", answer:8},
+  {text:"En la sala hay 6 niñas y 7 niños. ¿Cuántos niños hay en total en la sala?", answer:13},
+  {text:"Camila leyó 8 páginas el lunes y 9 páginas el martes. ¿Cuántas páginas leyó en total?", answer:17},
+  {text:"Había 20 pájaros en el árbol. Se fueron 11. ¿Cuántos pájaros quedaron?", answer:9}
+];
+
+const steps = [
+  {label:"Paso 1", title:"📖 Lee el problema", hint:"Lee el problema con cuidado. Puedes subrayar o marcar las palabras más importantes en tu pizarra.", answer:false},
+  {label:"Paso 2", title:"💬 Cuéntalo con tus palabras", hint:"Escribe o dibuja de qué trata el problema, como si se lo explicaras a un amigo o amiga.", answer:false},
+  {label:"Paso 3", title:"🎨 Dibuja una imagen o diagrama", hint:"Dibuja los personajes, objetos o una recta numérica que te ayude a entender mejor el problema.", answer:false},
+  {label:"Paso 4", title:"📋 Haz un plan", hint:"¿Qué operación necesitas? ¿Vas a sumar o restar? Escribe los pasos que vas a seguir.", answer:false},
+  {label:"Paso 5", title:"🔍 Estima la respuesta", hint:"Sin calcular exactamente, ¿cuánto crees que va a ser la respuesta? ¿Más o menos de 10? Escríbelo.", answer:false},
+  {label:"Paso 6", title:"🧮 ¡Resuelve el problema!", hint:"Ahora calcula la respuesta exacta. Escribe tu operación en la pizarra y luego coloca el resultado abajo.", answer:true},
+  {label:"Paso 7", title:"✔️ Comprueba tu respuesta", hint:"¿Tiene sentido tu respuesta? ¿Es muy grande o muy pequeña? Revisa que todo esté correcto.", answer:false},
+];
+
+let curStep=0, curProblem=0, tool='draw', color='#1a1a1a', brushSize=5;
+let canvasData={}, drawing=false, lastX=0, lastY=0;
+let activeCanvas=null, activeCtx=null;
+
+function initProblem(idx){
+  curProblem=idx; curStep=0; canvasData={};
+  document.getElementById('prob-text').textContent=problems[idx].text;
+  document.getElementById('congrats').style.display='none';
+  document.getElementById('step-panel').style.display='block';
+  document.getElementById('steps-nav').style.display='flex';
+  renderNav(); renderStep(); updateProgress();
+}
+
+function renderNav(){
+  const nav=document.getElementById('steps-nav');
+  nav.innerHTML='';
+  steps.forEach((s,i)=>{
+    const b=document.createElement('button');
+    b.className='step-btn'+(i===curStep?' active':i<curStep?' done':'');
+    b.innerHTML=`<span class="step-num">${i<curStep?'✓':i+1}</span>${s.label}`;
+    b.onclick=()=>{saveCanvas();curStep=i;renderStep();renderNav();updateProgress();};
+    nav.appendChild(b);
+  });
+}
+
+function renderStep(){
+  const s=steps[curStep];
+  document.getElementById('s-label').textContent=s.label+' de 7';
+  document.getElementById('s-title').textContent=s.title;
+  document.getElementById('s-hint').textContent=s.hint;
+  const ansSection=document.getElementById('ans-section');
+  ansSection.style.display=s.answer?'block':'none';
+  if(s.answer){document.getElementById('ans-input').value='';document.getElementById('feedback').style.display='none';}
+  loadCanvas();
+  document.getElementById('prev-btn').disabled=curStep===0;
+  document.getElementById('next-btn').textContent=curStep===steps.length-1?'¡Terminar! 🎉':'Siguiente →';
+}
+
+function loadCanvas(){
+  const cw=document.getElementById('cw');
+  const c=document.createElement('canvas');
+  c.width=680;c.height=200;
+  cw.innerHTML='';cw.appendChild(c);
+  activeCanvas=c;
+  activeCtx=c.getContext('2d');
+  activeCtx.fillStyle='#FAFAF8';activeCtx.fillRect(0,0,680,200);
+  drawLines(activeCtx);
+  if(canvasData[curStep]){
+    const img=new Image();img.src=canvasData[curStep];
+    img.onload=()=>activeCtx.drawImage(img,0,0);
+  }
+  setupDraw(c,activeCtx);
+}
+
+function saveCanvas(){if(activeCanvas)canvasData[curStep]=activeCanvas.toDataURL();}
+
+function drawLines(ctx){
+  ctx.strokeStyle='#E8E6DF';ctx.lineWidth=1;
+  for(let y=35;y<200;y+=35){ctx.beginPath();ctx.moveTo(10,y);ctx.lineTo(670,y);ctx.stroke();}
+}
+
+function setupDraw(c,ctx){
+  const getPos=(e)=>{
+    const r=c.getBoundingClientRect();
+    const sx=680/r.width, sy=200/r.height;
+    if(e.touches){return{x:(e.touches[0].clientX-r.left)*sx,y:(e.touches[0].clientY-r.top)*sy};}
+    return{x:(e.clientX-r.left)*sx,y:(e.clientY-r.top)*sy};
+  };
+  c.addEventListener('mousedown',(e)=>{drawing=true;const p=getPos(e);lastX=p.x;lastY=p.y;});
+  c.addEventListener('mousemove',(e)=>{
+    if(!drawing)return;
+    const p=getPos(e);
+    ctx.beginPath();
+    if(tool==='erase'){ctx.globalCompositeOperation='destination-out';ctx.lineWidth=brushSize*3;}
+    else{ctx.globalCompositeOperation='source-over';ctx.strokeStyle=color;ctx.lineWidth=brushSize;}
+    ctx.lineCap='round';ctx.lineJoin='round';
+    ctx.moveTo(lastX,lastY);ctx.lineTo(p.x,p.y);ctx.stroke();
+    lastX=p.x;lastY=p.y;
+  });
+  c.addEventListener('mouseup',()=>drawing=false);
+  c.addEventListener('mouseleave',()=>drawing=false);
+  c.addEventListener('touchstart',(e)=>{e.preventDefault();drawing=true;const p=getPos(e);lastX=p.x;lastY=p.y;},{passive:false});
+  c.addEventListener('touchmove',(e)=>{
+    e.preventDefault();if(!drawing)return;
+    const p=getPos(e);
+    ctx.beginPath();
+    if(tool==='erase'){ctx.globalCompositeOperation='destination-out';ctx.lineWidth=brushSize*3;}
+    else{ctx.globalCompositeOperation='source-over';ctx.strokeStyle=color;ctx.lineWidth=brushSize;}
+    ctx.lineCap='round';ctx.lineJoin='round';
+    ctx.moveTo(lastX,lastY);ctx.lineTo(p.x,p.y);ctx.stroke();
+    lastX=p.x;lastY=p.y;
+  },{passive:false});
+  c.addEventListener('touchend',()=>drawing=false);
+}
+
+function setTool(t){
+  tool=t;
+  document.getElementById('btn-draw').classList.toggle('active-tool',t==='draw');
+  document.getElementById('btn-erase').classList.toggle('active-tool',t==='erase');
+}
+
+function setColor(c){
+  color=c;tool='draw';
+  document.querySelectorAll('.color-dot').forEach(d=>d.classList.remove('sel'));
+  ['#1a1a1a','#D85A30','#1D9E75','#378ADD','#EF9F27','#D4537E'].forEach((col,i)=>{
+    if(col===c)document.getElementById('c'+i).classList.add('sel');
+  });
+  document.getElementById('btn-draw').classList.add('active-tool');
+  document.getElementById('btn-erase').classList.remove('active-tool');
+}
+
+document.getElementById('brush-size').addEventListener('input',function(){brushSize=parseInt(this.value);});
+
+function clearCanvas(){
+  if(!activeCtx)return;
+  activeCtx.globalCompositeOperation='source-over';
+  activeCtx.fillStyle='#FAFAF8';activeCtx.fillRect(0,0,680,200);
+  drawLines(activeCtx);
+}
+
+function checkAnswer(){
+  const val=parseInt(document.getElementById('ans-input').value);
+  const correct=problems[curProblem].answer;
+  const fb=document.getElementById('feedback');
+  if(isNaN(val)){fb.style.display='block';fb.className='feedback wrong';fb.textContent='Escribe un número para comprobar 🔢';return;}
+  if(val===correct){
+    fb.style.display='block';fb.className='feedback correct';
+    fb.textContent='🎉 ¡Correcto! La respuesta es '+correct+'. ¡Excelente trabajo, lo lograste!';
+  } else {
+    fb.style.display='block';fb.className='feedback wrong';
+    fb.textContent='🤔 Casi, pero no es correcta. ¡Vuelve a intentarlo! Revisa tu operación en la pizarra.';
+    document.getElementById('ans-input').value='';
+    document.getElementById('ans-input').focus();
+  }
+}
+
+function nextStep(){
+  saveCanvas();
+  if(curStep<steps.length-1){curStep++;renderStep();renderNav();updateProgress();}
+  else{showCongrats();}
+}
+
+function prevStep(){
+  saveCanvas();
+  if(curStep>0){curStep--;renderStep();renderNav();updateProgress();}
+}
+
+function updateProgress(){
+  document.getElementById('prog').style.width=((curStep+1)/steps.length*100)+'%';
+}
+
+function showCongrats(){
+  document.getElementById('step-panel').style.display='none';
+  document.getElementById('steps-nav').style.display='none';
+  document.getElementById('nav-btns') && (document.querySelector('.nav-btns').style.display='none');
+  document.getElementById('congrats').style.display='block';
+}
+
+function newProblem(){
+  document.querySelector('.nav-btns').style.display='flex';
+  const next=(curProblem+1)%problems.length;
+  initProblem(next);
+}
+
+initProblem(0);
+</script>
+</body>
+</html>
